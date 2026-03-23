@@ -1,0 +1,846 @@
+{% extends "base.html" %}
+
+{% block title %}Результаты поиска{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="card p-3 mb-4">
+        <div class="d-flex flex-wrap align-items-center gap-3">
+            <h5 class="mb-0"><i class="bi bi-search me-2"></i>Поиск:</h5>
+            <span class="badge bg-primary-custom p-2">{{ origin }} → {{ destination }}</span>
+            <span class="badge bg-light text-dark p-2">{{ departure }}</span>
+            {% if round_trip and return_date %}
+            <span class="badge bg-light text-dark p-2">обратно: {{ return_date }}</span>
+            {% endif %}
+            <span class="badge bg-light text-dark p-2">
+                {{ adults }} взр. {% if children > 0 %}+ {{ children }} дет.{% endif %}
+                {% if infants > 0 %}+ {{ infants }} мл.{% endif %}
+            </span>
+            <span class="badge bg-light text-dark p-2">{{ CLASSES[travel_class]['name'] }}</span>
+            {% if baggage_addon %}
+            <span class="badge bg-success text-dark p-2">+ Багаж {{ BAGGAGE_PRICE }} ₽</span>
+            {% endif %}
+            <a href="{{ url_for('search') }}" class="btn btn-outline-primary btn-sm ms-auto">
+                <i class="bi bi-pencil me-1"></i>Изменить
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-3 mb-4">
+            <div class="card p-3 sticky-top" style="top: 20px;">
+                <h5 class="mb-3">Фильтры</h5>
+                <form method="GET" action="{{ url_for('results') }}" id="filterForm">
+                    <input type="hidden" name="origin" value="{{ origin }}">
+                    <input type="hidden" name="destination" value="{{ destination }}">
+                    <input type="hidden" name="departure" value="{{ departure }}">
+                    <input type="hidden" name="return_date" value="{{ return_date }}">
+                    <input type="hidden" name="round_trip" value="{{ 'true' if round_trip else 'false' }}">
+                    <input type="hidden" name="adults" value="{{ adults }}">
+                    <input type="hidden" name="children" value="{{ children }}">
+                    <input type="hidden" name="infants" value="{{ infants }}">
+                    <input type="hidden" name="travel_class" value="{{ travel_class }}">
+                    <input type="hidden" name="baggage_addon" value="{{ 'true' if baggage_addon else 'false' }}">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Цена, ₽</label>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <input type="number" name="min_price" class="form-control" placeholder="От"
+                                       value="{{ selected_min }}">
+                            </div>
+                            <div class="col-6">
+                                <input type="number" name="max_price" class="form-control" placeholder="До"
+                                       value="{{ selected_max }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Пересадки</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="stops" value="0" id="stops0" {% if '0'
+                            in selected_stops %}checked{% endif %}>
+                            <label class="form-check-label" for="stops0">Без пересадок</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="stops" value="1" id="stops1" {% if '1'
+                            in selected_stops %}checked{% endif %}>
+                            <label class="form-check-label" for="stops1">1 пересадка</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="stops" value="2" id="stops2" {% if '2'
+                            in selected_stops %}checked{% endif %}>
+                            <label class="form-check-label" for="stops2">2+ пересадки</label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="baggage_only" value="true"
+                                   id="baggage" {% if baggage_only %}checked{% endif %}>
+                            <label class="form-check-label" for="baggage">Только с багажом</label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Время отправления</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="departure_time" value="" id="time_all" {%
+                                   if not departure_time_filter %}checked{% endif %}>
+                            <label class="form-check-label" for="time_all">Любое</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="departure_time" value="morning"
+                                   id="time_morning" {% if departure_time_filter== 'morning' %}checked{% endif %}>
+                            <label class="form-check-label" for="time_morning">Утро (06:00-11:59)</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="departure_time" value="day" id="time_day"
+                                   {% if departure_time_filter== 'day' %}checked{% endif %}>
+                            <label class="form-check-label" for="time_day">День (12:00-17:59)</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="departure_time" value="evening"
+                                   id="time_evening" {% if departure_time_filter== 'evening' %}checked{% endif %}>
+                            <label class="form-check-label" for="time_evening">Вечер (18:00-23:59)</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="departure_time" value="night"
+                                   id="time_night" {% if departure_time_filter== 'night' %}checked{% endif %}>
+                            <label class="form-check-label" for="time_night">Ночь (00:00-05:59)</label>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">Применить</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-lg-9">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5>Найдено {{ flights|length }} рейсов туда</h5>
+                <select class="form-select w-auto" onchange="window.location.href=this.value">
+                    {% set base_url = url_for('results', origin=origin, destination=destination, departure=departure,
+                    return_date=return_date, round_trip='true' if round_trip else 'false', adults=adults,
+                    children=children, infants=infants, travel_class=travel_class, baggage_addon='true' if baggage_addon
+                    else 'false', min_price=selected_min, max_price=selected_max, baggage_only=baggage_only,
+                    departure_time=departure_time_filter) %}
+                    <option value="{{ base_url }}&sort_by=price_asc" {% if sort_by==
+                    'price_asc' %}selected{% endif %}>Сначала дешевые</option>
+                    <option value="{{ base_url }}&sort_by=price_desc" {% if sort_by==
+                    'price_desc' %}selected{% endif %}>Сначала дорогие</option>
+                    <option value="{{ base_url }}&sort_by=departure_asc" {% if sort_by==
+                    'departure_asc' %}selected{% endif %}>По времени вылета</option>
+                    <option value="{{ base_url }}&sort_by=duration_asc" {% if sort_by==
+                    'duration_asc' %}selected{% endif %}>По длительности</option>
+                </select>
+            </div>
+
+            {% if flights %}
+            {% for flight in flights %}
+            <div class="card mb-3 flight-card" data-flight-id="{{ flight.id }}">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="d-flex align-items-center mb-3">
+                                <span class="badge bg-primary-custom me-2">{{ flight.airline }}</span>
+                                <span class="text-muted small">{{ flight.flight_number }}</span>
+                            </div>
+                            <div class="row align-items-center">
+                                <div class="col-5 text-center">
+                                    <div class="fw-bold fs-5">{{ flight.departure_time.strftime('%H:%M') }}</div>
+                                    <div>{{ flight.origin_code }}</div>
+                                    <div class="small text-muted">{{ flight.origin_city }}</div>
+                                    <div class="small text-muted">{{ flight.origin_airport }}</div>
+                                    <div class="small text-muted mt-1">МСК: {{ flight.departure_time.strftime('%H:%M')
+                                        }}
+                                    </div>
+                                </div>
+                                <div class="col-2 text-center">
+                                    <div class="small text-muted">
+                                        {% if flight.stops > 0 %}
+                                        <span class="text-primary fw-bold">{{ flight.total_duration_str }}</span>
+                                        <br>
+                                        <small class="text-muted">(в воздухе: {{ flight.duration_str }})</small>
+                                        {% else %}
+                                        {{ flight.duration_str }}
+                                        {% endif %}
+                                    </div>
+                                    <div class="border-top border-bottom py-1"><i class="bi bi-arrow-right"></i></div>
+                                    <div class="small text-muted">
+                                        {{ flight.stops_str }}
+                                        {% if flight.stops > 0 and flight.stop_info and flight.stop_info is iterable and
+                                        flight.stop_info is not string %}
+                                        <i class="bi bi-info-circle ms-1"
+                                           data-bs-toggle="tooltip"
+                                           data-bs-html="true"
+                                           title="{% for stop in flight.stop_info %}{{ stop.number }}. {{ stop.city }} ({{ stop.layover_str }}){% if not loop.last %}<br>{% endif %}{% endfor %}">
+                                        </i>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-5 text-center">
+                                    <div class="fw-bold fs-5">{{ flight.arrival_time.strftime('%H:%M') }}</div>
+                                    <div>{{ flight.destination_code }}</div>
+                                    <div class="small text-muted">{{ flight.destination_city }}</div>
+                                    <div class="small text-muted">{{ flight.destination_airport }}</div>
+                                    <div class="small text-muted mt-1">МСК: {{ flight.arrival_time.strftime('%H:%M')
+                                        }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                {% if flight.baggage %}
+                                <span class="badge-baggage"><i class="bi bi-bag-check"></i> Багаж включен</span>
+                                {% else %}
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary">Без багажа</span>
+                                {% endif %}
+                                {% if flight.baggage_price > 0 %}
+                                <span class="badge bg-success bg-opacity-10 text-success ms-2"><i
+                                        class="bi bi-plus-circle"></i> +{{ flight.baggage_price }} ₽ за багаж</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                            <div class="price-tag mb-2">{{ "{:,}".format(flight.price).replace(',', ' ') }} ₽</div>
+                            <div class="d-flex gap-2 justify-content-md-end">
+                                {% if current_user.is_authenticated %}
+                                <button class="btn btn-outline-danger favorite-btn"
+                                        data-flight='{{ flight|tojson|safe }}'
+                                        onclick="addToFavorites(this)">
+                                    <i class="bi bi-heart"></i>
+                                </button>
+                                {% endif %}
+
+                                {% if round_trip %}
+                                <button class="btn btn-primary select-outbound-btn"
+                                        data-flight-id="{{ flight.id }}"
+                                        data-flight-price="{{ flight.price }}"
+                                        data-flight-airline="{{ flight.airline }}"
+                                        data-flight-number="{{ flight.flight_number }}"
+                                        data-flight-departure="{{ flight.departure_time.strftime('%H:%M') }}"
+                                        data-flight-arrival="{{ flight.arrival_time.strftime('%H:%M') }}"
+                                        data-flight-origin="{{ flight.origin_city }}"
+                                        data-flight-destination="{{ flight.destination_city }}"
+                                        data-flight-date="{{ flight.departure_time.strftime('%d.%m.%Y') }}">
+                                    Выбрать туда
+                                </button>
+                                {% else %}
+                                <a href="{{ url_for('confirm_booking', outbound_id=flight.id, adults=adults, children=children, infants=infants, travel_class=travel_class, baggage_addon='true' if baggage_addon else 'false') }}"
+                                   class="btn btn-primary">
+                                    Забронировать
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-exclamation-circle text-muted" style="font-size: 4rem;"></i>
+                <h5 class="mt-3">Рейсов туда не найдено</h5>
+                <p class="text-muted">Попробуйте изменить параметры поиска</p>
+            </div>
+            {% endif %}
+
+            <div id="returnSelectionPanel" class="alert alert-info mt-3 mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <div id="selectedFlightInfo">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <span id="selectedFlightDetails">Выберите билет туда, чтобы продолжить</span>
+                    </div>
+                    <a href="#" id="goToReturnBtn" class="btn btn-primary" style="display: none;">
+                        <i class="bi bi-arrow-left-right me-2"></i>Перейти к выбору обратного билета
+                    </a>
+                </div>
+            </div>
+
+            {% if round_trip %}
+            <hr class="my-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5>Найдено {{ return_flights|length }} рейсов обратно</h5>
+            </div>
+
+            {% if return_flights %}
+            {% for flight in return_flights %}
+            <div class="card mb-3 flight-card" data-flight-id="{{ flight.id }}">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="d-flex align-items-center mb-3">
+                                <span class="badge bg-primary-custom me-2">{{ flight.airline }}</span>
+                                <span class="text-muted small">{{ flight.flight_number }}</span>
+                            </div>
+                            <div class="row align-items-center">
+                                <div class="col-5 text-center">
+                                    <div class="fw-bold fs-5">{{ flight.departure_time.strftime('%H:%M') }}</div>
+                                    <div>{{ flight.origin_code }}</div>
+                                    <div class="small text-muted">{{ flight.origin_city }}</div>
+                                    <div class="small text-muted">{{ flight.origin_airport }}</div>
+                                    <div class="small text-muted mt-1">МСК: {{ flight.departure_time.strftime('%H:%M')
+                                        }}
+                                    </div>
+                                </div>
+                                <div class="col-2 text-center">
+                                    <div class="small text-muted">
+                                        {% if flight.stops > 0 %}
+                                        <span class="text-primary fw-bold">{{ flight.total_duration_str }}</span>
+                                        <br>
+                                        <small class="text-muted">(в воздухе: {{ flight.duration_str }})</small>
+                                        {% else %}
+                                        {{ flight.duration_str }}
+                                        {% endif %}
+                                    </div>
+                                    <div class="border-top border-bottom py-1"><i class="bi bi-arrow-right"></i></div>
+                                    <div class="small text-muted">
+                                        {{ flight.stops_str }}
+                                        {% if flight.stops > 0 and flight.stop_info and flight.stop_info is iterable and
+                                        flight.stop_info is not string %}
+                                        <i class="bi bi-info-circle ms-1"
+                                           data-bs-toggle="tooltip"
+                                           data-bs-html="true"
+                                           title="{% for stop in flight.stop_info %}{{ stop.number }}. {{ stop.city }} ({{ stop.layover_str }}){% if not loop.last %}<br>{% endif %}{% endfor %}">
+                                        </i>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-5 text-center">
+                                    <div class="fw-bold fs-5">{{ flight.arrival_time.strftime('%H:%M') }}</div>
+                                    <div>{{ flight.destination_code }}</div>
+                                    <div class="small text-muted">{{ flight.destination_city }}</div>
+                                    <div class="small text-muted">{{ flight.destination_airport }}</div>
+                                    <div class="small text-muted mt-1">МСК: {{ flight.arrival_time.strftime('%H:%M')
+                                        }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                {% if flight.baggage %}
+                                <span class="badge-baggage"><i class="bi bi-bag-check"></i> Багаж включен</span>
+                                {% else %}
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary">Без багажа</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                            <div class="price-tag mb-2">{{ "{:,}".format(flight.price).replace(',', ' ') }} ₽</div>
+                            <div class="d-flex gap-2 justify-content-md-end">
+                                {% if current_user.is_authenticated %}
+                                <button class="btn btn-outline-danger favorite-btn"
+                                        data-flight='{{ flight|tojson|safe }}'
+                                        onclick="addToFavorites(this)">
+                                    <i class="bi bi-heart"></i>
+                                </button>
+                                {% endif %}
+                                <button class="btn btn-primary select-return-btn"
+                                        data-flight-id="{{ flight.id }}"
+                                        data-outbound-id="">
+                                    Выбрать обратный
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-exclamation-circle text-muted" style="font-size: 4rem;"></i>
+                <h5 class="mt-3">Рейсов обратно не найдено</h5>
+                <p class="text-muted">Попробуйте изменить дату обратного вылета</p>
+            </div>
+            {% endif %}
+            {% endif %}
+
+            {% if flights or return_flights %}
+            <div class="alert alert-info mt-4">
+                <i class="bi bi-info-circle me-2"></i>
+                Показаны все возможные рейсы. Цены и наличие мест могут меняться.
+                {% if current_user.is_authenticated %}
+                <br><i class="bi bi-heart me-1"></i> Нажмите на сердечко, чтобы сохранить рейс в избранное.
+                {% endif %}
+                {% if round_trip %}
+                <br><i class="bi bi-arrow-left-right me-1"></i> Сначала выберите билет туда, затем обратный.
+                {% endif %}
+                <br><i class="bi bi-mouse me-1"></i> Кликните на карточку рейса, чтобы увидеть подробную информацию.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="flightDetailModal" tabindex="-1" aria-labelledby="flightDetailModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary-custom text-white">
+                <h5 class="modal-title" id="flightDetailModalLabel">
+                    <i class="bi bi-airplane-engines me-2"></i>Детали рейса
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="flightDetailContent">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Загрузка...</span>
+                    </div>
+                    <p class="mt-3">Загрузка информации о рейсе...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                <button type="button" class="btn btn-primary" id="modalBookBtn">Забронировать</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .badge-baggage { background-color: #d1fae5; color: #065f46; padding: 0.5rem 1rem; border-radius: 20px; font-weight: 500; display: inline-block; }
+    .flight-card { transition: all 0.2s; cursor: pointer; }
+    .flight-card:hover { background-color: #f8fafc; transform: translateY(-2px); box-shadow: 0 8px 25px rgba(67, 97, 238, 0.15); }
+    .flight-card.selected { border: 2px solid #4361ee !important; background-color: #f0f4ff !important; box-shadow: 0 4px 15px rgba(67, 97, 238, 0.2); }
+    .favorite-btn { transition: all 0.2s; }
+    .favorite-btn.active i { color: #dc3545; font-weight: 900; }
+    .price-tag { font-size: 1.25rem; font-weight: 700; color: #4361ee; }
+    .badge-stops { background-color: #e9ecef; color: #495057; padding: 0.5rem 1rem; border-radius: 20px; font-weight: 500; display: inline-block; }
+    .flight-detail-modal { max-height: 70vh; overflow-y: auto; }
+    .modal-header.bg-primary-custom { background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%); }
+</style>
+
+<script>
+    let selectedOutboundId = null;
+    const adults = {{ adults }};
+    const children = {{ children }};
+    const infants = {{ infants }};
+    const travel_class = "{{ travel_class }}";
+    const baggage_addon = {{ 'true' if baggage_addon else 'false' }};
+    const currentUserAuthenticated = {{ 'true' if current_user.is_authenticated else 'false' }};
+
+    function showFlightDetails(flightId) {
+        const modal = new bootstrap.Modal(document.getElementById('flightDetailModal'));
+        const modalContent = document.getElementById('flightDetailContent');
+
+        modalContent.innerHTML = `
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Загрузка...</span>
+                </div>
+                <p class="mt-3">Загрузка информации о рейсе...</p>
+            </div>
+        `;
+
+        modal.show();
+
+        fetch(`/api/flight/${flightId}?travel_class=${travel_class}&baggage_addon=${baggage_addon}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayFlightDetails(data.flight);
+                    document.getElementById('modalBookBtn').onclick = () => {
+                        {% if round_trip %}
+                            window.location.href = `/select_return_flight?outbound_id=${flightId}&return_date={{ return_date }}&origin={{ destination }}&destination={{ origin }}&travel_class=${travel_class}&adults=${adults}&children=${children}&infants=${infants}&baggage_addon=${baggage_addon}`;
+                        {% else %}
+                            window.location.href = `/confirm_booking?outbound_id=${flightId}&adults=${adults}&children=${children}&infants=${infants}&travel_class=${travel_class}&baggage_addon=${baggage_addon}`;
+                        {% endif %}
+                    };
+                } else {
+                    modalContent.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            Ошибка загрузки информации о рейсе
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                modalContent.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        Ошибка загрузки информации о рейсе
+                    </div>
+                `;
+            });
+    }
+
+    function displayFlightDetails(flight) {
+        const modalContent = document.getElementById('flightDetailContent');
+
+        const depTime = new Date(flight.departure_time);
+        const arrTime = new Date(flight.arrival_time);
+
+        const totalDuration = flight.total_duration_str || flight.duration_str;
+        const airDuration = flight.duration_str;
+
+        let stopsHtml = '';
+        if (flight.stops === 0) {
+            stopsHtml = '<div class="alert alert-success mb-3"><i class="bi bi-check-circle me-2"></i>Прямой рейс без пересадок</div>';
+        } else if (flight.stop_info && Array.isArray(flight.stop_info)) {
+            stopsHtml = `
+                <div class="alert alert-info mb-3">
+                    <h6 class="mb-3"><i class="bi bi-arrow-left-right me-2"></i>Информация о пересадках:</h6>
+                    ${flight.stop_info.map(stop => `
+                        <div class="mb-3 pb-2 border-bottom">
+                            <div class="d-flex align-items-start">
+                                <div class="me-3">
+                                    <span class="badge bg-primary-custom rounded-circle" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+                                        ${stop.number}
+                                    </span>
+                                </div>
+                                <div>
+                                    <div class="fw-bold">${stop.city}</div>
+                                    <div class="small text-muted">${stop.airport}</div>
+                                    <div class="small mt-1">
+                                        <i class="bi bi-clock me-1"></i>
+                                        Время ожидания: ${stop.layover_str}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        } else {
+            stopsHtml = `<div class="alert alert-info mb-3"><i class="bi bi-arrow-left-right me-2"></i>${flight.stops_str}</div>`;
+        }
+
+        modalContent.innerHTML = `
+            <div class="flight-detail-modal">
+                <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+                    <div>
+                        <span class="badge bg-primary-custom fs-6 p-2">${flight.airline}</span>
+                        <span class="text-muted ms-2">Рейс ${flight.flight_number}</span>
+                    </div>
+                    <div class="price-tag fs-4">${flight.price.toLocaleString()} ₽</div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-5 text-center">
+                        <div class="fs-2 fw-bold">${depTime.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'})}</div>
+                        <div class="fs-5 fw-bold">${flight.origin_code}</div>
+                        <div class="text-muted">${flight.origin_city}</div>
+                        <div class="small text-muted">${flight.origin_airport}</div>
+                        <div class="small text-muted mt-2">${depTime.toLocaleDateString('ru-RU')}</div>
+                    </div>
+                    <div class="col-2 text-center">
+                        <div class="small text-muted">
+                            ${flight.stops > 0 ?
+                                `<span class="text-primary fw-bold">${totalDuration}</span><br>
+                                 <small class="text-muted">(в воздухе: ${airDuration})</small>` :
+                                totalDuration}
+                        </div>
+                        <div class="my-3"><i class="bi bi-airplane fs-1 text-primary-custom"></i></div>
+                        <div class="badge-stops">${flight.stops_str}</div>
+                    </div>
+                    <div class="col-5 text-center">
+                        <div class="fs-2 fw-bold">${arrTime.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'})}</div>
+                        <div class="fs-5 fw-bold">${flight.destination_code}</div>
+                        <div class="text-muted">${flight.destination_city}</div>
+                        <div class="small text-muted">${flight.destination_airport}</div>
+                        <div class="small text-muted mt-2">${arrTime.toLocaleDateString('ru-RU')}</div>
+                    </div>
+                </div>
+
+                ${stopsHtml}
+
+                <div class="row g-3 mt-2">
+                    <div class="col-md-4">
+                        <div class="bg-light p-3 rounded text-center">
+                            <i class="bi bi-suitcase fs-4 mb-2 d-block"></i>
+                            <h6>Багаж</h6>
+                            ${flight.baggage ?
+                                '<p class="text-success mb-0">✓ Включен в стоимость</p>' :
+                                '<p class="text-danger mb-0">✗ Не включен</p>'}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="bg-light p-3 rounded text-center">
+                            <i class="bi bi-clock fs-4 mb-2 d-block"></i>
+                            <h6>Длительность</h6>
+                            <p class="mb-0 fw-bold">${totalDuration}</p>
+                            ${flight.stops > 0 ? `<small class="text-muted">(в воздухе: ${airDuration})</small>` : ''}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="bg-light p-3 rounded text-center">
+                            <i class="bi bi-arrow-left-right fs-4 mb-2 d-block"></i>
+                            <h6>Пересадки</h6>
+                            <p class="mb-0">${flight.stops_str}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function addToFavorites(button) {
+        const flightData = JSON.parse(button.dataset.flight);
+        const isActive = button.classList.contains('active');
+        const originalHtml = button.innerHTML;
+
+        button.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        button.disabled = true;
+
+        console.log('=== ДЕЙСТВИЕ С ИЗБРАННЫМ ===');
+        console.log('Уже в избранном:', isActive);
+        console.log('Данные рейса:', flightData);
+
+        if (isActive) {
+            console.log('Удаляем из избранного');
+            fetch(`/remove_favorite/${flightData.id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Ответ сервера:', data);
+                if (data.success) {
+                    button.innerHTML = '<i class="bi bi-heart"></i>';
+                    button.classList.remove('active');
+                    showNotification('Рейс удален из избранного', 'info');
+                } else {
+                    throw new Error(data.error || 'Ошибка при удалении');
+                }
+                button.disabled = false;
+            })
+            .catch(error => {
+                console.error('ОШИБКА:', error);
+                button.innerHTML = originalHtml;
+                button.disabled = false;
+                showNotification('Ошибка при удалении из избранного', 'danger');
+            });
+        }
+        else {
+            console.log('Добавляем в избранное');
+
+            const dataToSend = {
+                airline: flightData.airline,
+                flight_number: flightData.flight_number,
+                origin_city: flightData.origin_city,
+                origin_code: flightData.origin_code,
+                origin_airport: flightData.origin_airport || flightData.origin_city,
+                origin_timezone: flightData.origin_timezone || 'Europe/Moscow',
+                destination_city: flightData.destination_city,
+                destination_code: flightData.destination_code,
+                destination_airport: flightData.destination_airport || flightData.destination_city,
+                destination_timezone: flightData.destination_timezone || 'Europe/Moscow',
+                departure_time: flightData.departure_time,
+                arrival_time: flightData.arrival_time,
+                duration_minutes: flightData.duration_minutes,
+                stops: flightData.stops,
+                baggage: flightData.baggage,
+                base_price: flightData.base_price
+            };
+
+            if (flightData.stop_info) {
+                dataToSend.stop_info = flightData.stop_info;
+            }
+
+            fetch('/add_to_favorites', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(dataToSend)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Ответ сервера:', data);
+                if (data.success) {
+                    button.dataset.flight = JSON.stringify({
+                        ...flightData,
+                        id: data.flight_id
+                    });
+                    button.innerHTML = '<i class="bi bi-heart-fill text-danger"></i>';
+                    button.classList.add('active');
+                    showNotification('Рейс добавлен в избранное!', 'success');
+                } else {
+                    throw new Error(data.error || 'Ошибка при добавлении');
+                }
+                button.disabled = false;
+            })
+            .catch(error => {
+                console.error('ОШИБКА:', error);
+                button.innerHTML = originalHtml;
+                button.disabled = false;
+                showNotification('Ошибка при добавлении в избранное', 'danger');
+            });
+        }
+    }
+
+    function showNotification(message, type) {
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+        notification.style.zIndex = '9999';
+        notification.innerHTML = `${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+        document.body.appendChild(notification);
+        setTimeout(() => notification.remove(), 3000);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+
+        if (currentUserAuthenticated) {
+            fetch('/api/user_favorites')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const favoriteIds = data.favorites;
+                        document.querySelectorAll('.favorite-btn').forEach(btn => {
+                            try {
+                                const flightData = JSON.parse(btn.dataset.flight);
+                                if (favoriteIds.includes(flightData.id)) {
+                                    btn.innerHTML = '<i class="bi bi-heart-fill text-danger"></i>';
+                                    btn.classList.add('active');
+                                }
+                            } catch(e) {
+                                console.error('Ошибка парсинга данных рейса:', e);
+                            }
+                        });
+                    }
+                })
+                .catch(error => console.error('Ошибка загрузки избранного:', error));
+        }
+
+        const flightCards = document.querySelectorAll('.flight-card');
+        flightCards.forEach(card => {
+            card.addEventListener('click', function(e) {
+                if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+                if (e.target.tagName === 'A' || e.target.closest('a')) return;
+
+                const flightId = this.dataset.flightId;
+                if (flightId) {
+                    showFlightDetails(flightId);
+                }
+            });
+        });
+
+        const savedFlight = sessionStorage.getItem('selected_outbound_id');
+        if (savedFlight) {
+            selectedOutboundId = savedFlight;
+            updateReturnPanel(savedFlight);
+            const selectedCard = document.querySelector(`.flight-card[data-flight-id="${savedFlight}"]`);
+            if (selectedCard) {
+                selectedCard.classList.add('selected');
+            }
+        }
+
+        const selectButtons = document.querySelectorAll('.select-outbound-btn');
+        selectButtons.forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const flightId = this.dataset.flightId;
+                const flightAirline = this.dataset.flightAirline;
+                const flightNumber = this.dataset.flightNumber;
+                const flightDeparture = this.dataset.flightDeparture;
+                const flightArrival = this.dataset.flightArrival;
+                const flightOrigin = this.dataset.flightOrigin;
+                const flightDestination = this.dataset.flightDestination;
+                const flightDate = this.dataset.flightDate;
+
+                selectedOutboundId = flightId;
+                sessionStorage.setItem('selected_outbound_id', flightId);
+                sessionStorage.setItem('selected_outbound_data', JSON.stringify({
+                    id: flightId,
+                    airline: flightAirline,
+                    flight_number: flightNumber,
+                    departure: flightDeparture,
+                    arrival: flightArrival,
+                    origin: flightOrigin,
+                    destination: flightDestination,
+                    date: flightDate
+                }));
+
+                updateReturnPanel(flightId);
+
+                document.querySelectorAll('.flight-card').forEach(card => {
+                    card.classList.remove('selected');
+                });
+                this.closest('.flight-card').classList.add('selected');
+
+                document.querySelectorAll('.select-return-btn').forEach(returnBtn => {
+                    returnBtn.dataset.outboundId = flightId;
+                });
+
+                showNotification('Билет туда выбран! Теперь выберите обратный билет.', 'success');
+            });
+        });
+
+        const returnButtons = document.querySelectorAll('.select-return-btn');
+        returnButtons.forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const outboundId = this.dataset.outboundId;
+                const returnId = this.dataset.flightId;
+
+                if (!outboundId) {
+                    showNotification('Сначала выберите билет туда!', 'warning');
+                    return;
+                }
+
+                const urlParams = new URLSearchParams(window.location.search);
+                const adults = urlParams.get('adults') || 1;
+                const children = urlParams.get('children') || 0;
+                const infants = urlParams.get('infants') || 0;
+                const travelClass = urlParams.get('travel_class') || 'economy';
+                const baggageAddon = urlParams.get('baggage_addon') || 'false';
+
+                window.location.href = `/confirm_booking?outbound_id=${outboundId}&return_id=${returnId}&adults=${adults}&children=${children}&infants=${infants}&travel_class=${travelClass}&baggage_addon=${baggageAddon}`;
+            });
+        });
+
+        function updateReturnPanel(flightId) {
+            const selectedFlightDetails = document.getElementById('selectedFlightDetails');
+            const goToReturnBtn = document.getElementById('goToReturnBtn');
+
+            if (!selectedFlightDetails) return;
+
+            const flightData = sessionStorage.getItem('selected_outbound_data');
+
+            if (flightData && flightId) {
+                const flight = JSON.parse(flightData);
+                const flightInfo = `${flight.airline} ${flight.flight_number} (${flight.departure} → ${flight.arrival})<br>
+                                   <small class="text-muted">${flight.origin} → ${flight.destination} | ${flight.date}</small>`;
+
+                selectedFlightDetails.innerHTML = `<i class="bi bi-check-circle-fill me-2 text-success"></i> <strong>Выбран билет туда:</strong> ${flightInfo}`;
+
+                const urlParams = new URLSearchParams(window.location.search);
+                const returnDate = urlParams.get('return_date') || '';
+                const origin = urlParams.get('destination') || '';
+                const destination = urlParams.get('origin') || '';
+                const travelClass = urlParams.get('travel_class') || 'economy';
+                const adults = urlParams.get('adults') || 1;
+                const children = urlParams.get('children') || 0;
+                const infants = urlParams.get('infants') || 0;
+                const baggageAddon = urlParams.get('baggage_addon') || 'false';
+
+                if (goToReturnBtn) {
+                    goToReturnBtn.style.display = 'inline-flex';
+                    goToReturnBtn.href = `/select_return_flight?outbound_id=${flightId}&return_date=${returnDate}&origin=${origin}&destination=${destination}&travel_class=${travelClass}&adults=${adults}&children=${children}&infants=${infants}&baggage_addon=${baggageAddon}`;
+                }
+            } else {
+                selectedFlightDetails.innerHTML = '<i class="bi bi-info-circle me-2"></i> Выберите билет туда, чтобы продолжить';
+                if (goToReturnBtn) {
+                    goToReturnBtn.style.display = 'none';
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

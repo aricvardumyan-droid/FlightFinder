@@ -1,0 +1,400 @@
+{% extends "base.html" %}
+
+{% block title %}Личный кабинет{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <!-- Боковая панель с профилем -->
+        <div class="col-lg-4 mb-4">
+            <div class="card p-4 text-center">
+                <div class="position-relative d-inline-block mx-auto">
+                    <img src="{{ url_for('uploaded_file', filename=user.avatar) if user.avatar != 'default_avatar.png' else url_for('static', filename='default_avatar.png') }}"
+                         class="avatar-lg mb-3" alt="Avatar">
+                </div>
+
+                <h4>{{ user.username }}</h4>
+                <p class="text-muted mb-3">{{ user.email }}</p>
+
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
+                            data-bs-target="#avatarModal">
+                        <i class="bi bi-camera me-2"></i>Сменить аватар
+                    </button>
+                </div>
+
+                <hr class="my-4">
+
+                <div class="text-start">
+                    <p><i class="bi bi-calendar3 me-2 text-primary-custom"></i>Зарегистрирован: {{
+                        user.created_at.strftime('%d.%m.%Y') }}</p>
+                    <p><i class="bi bi-heart me-2 text-primary-custom"></i>В избранном: {{ user.favorites.count() }}</p>
+                    <p><i class="bi bi-search me-2 text-primary-custom"></i>Поисков: {{ user.searches.count() }}</p>
+                    <p><i class="bi bi-ticket-perforated me-2 text-primary-custom"></i>Бронирований: {{ bookings|length
+                        }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Основной контент -->
+        <div class="col-lg-8">
+            <!-- Вкладки -->
+            <ul class="nav nav-tabs mb-4" id="profileTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="favorites-tab" data-bs-toggle="tab" data-bs-target="#favorites"
+                            type="button" role="tab">
+                        <i class="bi bi-heart me-2"></i>Избранное
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history"
+                            type="button" role="tab">
+                        <i class="bi bi-clock-history me-2"></i>История поиска
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="bookings-tab" data-bs-toggle="tab" data-bs-target="#bookings"
+                            type="button" role="tab">
+                        <i class="bi bi-ticket-perforated me-2"></i>Мои бронирования
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Содержимое вкладок -->
+            <div class="tab-content" id="profileTabsContent">
+                <!-- Избранное -->
+                <div class="tab-pane fade show active" id="favorites" role="tabpanel">
+                    {% if favorites %}
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5>Сохраненные рейсы</h5>
+                        <span class="badge bg-primary-custom">{{ favorites|length }}</span>
+                    </div>
+
+                    {% for fav in favorites %}
+                    <div class="card mb-3 flight-card">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <h5 class="mb-0 me-2">{{ fav.flight.origin_city }} → {{
+                                            fav.flight.destination_city }}</h5>
+                                        <span class="badge bg-light text-dark">{{ fav.flight.airline }}</span>
+                                    </div>
+                                    <div class="d-flex align-items-center text-muted small mb-2">
+                                        <span><i class="bi bi-clock me-1"></i>{{ fav.flight.departure_time.strftime('%d.%m.%Y %H:%M') }}</span>
+                                        <span class="mx-2">→</span>
+                                        <span><i class="bi bi-clock me-1"></i>{{ fav.flight.arrival_time.strftime('%d.%m.%Y %H:%M') }}</span>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <span class="badge-stops">{{ fav.flight.stops_str }}</span>
+                                        {% if fav.flight.baggage %}
+                                        <span class="badge-baggage"><i class="bi bi-bag me-1"></i>Багаж</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                                    <div class="price-tag mb-2">{{ "{:,}".format(fav.flight.base_price).replace(',', '
+                                        ') }} ₽
+                                    </div>
+                                    <a href="{{ url_for('flight_detail', flight_id=fav.flight.id) }}"
+                                       class="btn btn-outline-primary btn-sm">Подробнее</a>
+                                    <a href="{{ url_for('remove_favorite_get', flight_id=fav.flight.id) }}"
+                                       class="btn btn-outline-danger btn-sm"
+                                       onclick="return confirm('Удалить из избранного?')">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-heart text-muted" style="font-size: 4rem;"></i>
+                        <h5 class="mt-3">В избранном пока пусто</h5>
+                        <p class="text-muted">Добавляйте понравившиеся рейсы, чтобы не потерять</p>
+                        <a href="{{ url_for('search') }}" class="btn btn-primary">Найти билеты</a>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- История поиска -->
+                <div class="tab-pane fade" id="history" role="tabpanel">
+                    {% if history %}
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5>Последние запросы</h5>
+                        <a href="{{ url_for('clear_history') }}" class="btn btn-outline-danger btn-sm"
+                           onclick="return confirm('Очистить историю?')">
+                            <i class="bi bi-trash me-1"></i>Очистить
+                        </a>
+                    </div>
+
+                    {% for search in history %}
+                    <div class="card mb-2">
+                        <div class="card-body py-3">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <div class="d-flex align-items-center flex-wrap gap-2">
+                                        <i class="bi bi-search text-primary-custom"></i>
+                                        <span class="fw-medium">{{ search.origin }} → {{ search.destination }}</span>
+                                        <span class="text-muted small">{{ search.departure_date.strftime('%d.%m.%Y') }}</span>
+                                        {% if search.return_date %}
+                                        <span class="text-muted small"> - {{ search.return_date.strftime('%d.%m.%Y') }}</span>
+                                        {% endif %}
+                                        <span class="badge bg-light text-dark">{{ CLASSES[search.travel_class]['name'] }}</span>
+                                        <span class="badge bg-light text-dark">{{ search.adults + search.children }} чел.</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 text-md-end mt-2 mt-md-0">
+                                    <small class="text-muted">{{ search.created_at.strftime('%d.%m.%Y %H:%M') }}</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-clock-history text-muted" style="font-size: 4rem;"></i>
+                        <h5 class="mt-3">История поиска пуста</h5>
+                        <p class="text-muted">Здесь будут отображаться ваши запросы</p>
+                        <a href="{{ url_for('search') }}" class="btn btn-primary">Найти билеты</a>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Мои бронирования -->
+                <div class="tab-pane fade" id="bookings" role="tabpanel">
+                    {% if bookings %}
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5>Активные бронирования</h5>
+                        <a href="{{ url_for('my_bookings') }}" class="btn btn-outline-primary btn-sm">Все
+                            бронирования</a>
+                    </div>
+
+                    {% for item in bookings[:5] %}
+                    {% if item.type == 'one_way' %}
+                    {% set booking = item.data %}
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-7">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <h6 class="mb-0 me-2">{{ booking.flight.origin_city }} → {{
+                                            booking.flight.destination_city }}</h6>
+                                        <span class="badge bg-primary-custom">{{ CLASSES[booking.travel_class]['name'] }}</span>
+                                    </div>
+                                    <div class="small text-muted">
+                                        <i class="bi bi-calendar me-1"></i>
+                                        {{ booking.flight.departure_time.strftime('%d.%m.%Y %H:%M') }}
+                                    </div>
+                                    <div class="small text-muted">
+                                        <i class="bi bi-airplane me-1"></i>
+                                        {{ booking.flight.airline }} ({{ booking.flight.flight_number }})
+                                    </div>
+                                    <div class="small text-muted">
+                                        <i class="bi bi-person me-1"></i>
+                                        {{ booking.adults }} взр.
+                                        {% if booking.children > 0 %}+ {{ booking.children }} дет.{% endif %}
+                                        {% if booking.infants > 0 %}+ {{ booking.infants }} мл.{% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="price-tag small">
+                                        {{ "{:,}".format(booking.total_price).replace(',', ' ') }} ₽
+                                    </div>
+                                    <div class="small text-muted">Номер: {{ booking.booking_number }}</div>
+                                    <div class="small text-muted mt-1">
+                                                    <span class="badge {% if booking.status == 'confirmed' %}bg-success{% else %}bg-secondary{% endif %}">
+                                                        {{ 'Подтверждено' if booking.status == 'confirmed' else 'Отменено' }}
+                                                    </span>
+                                    </div>
+                                </div>
+                                <div class="col-md-2 text-md-end">
+                                    <a href="{{ url_for('flight_detail', flight_id=booking.flight.id) }}"
+                                       class="btn btn-sm btn-outline-primary mb-2">Подробнее</a>
+                                    {% if booking.status == 'confirmed' %}
+                                    <a href="{{ url_for('cancel_booking_confirm', booking_id=booking.id) }}"
+                                       class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-x-circle me-1"></i>Отменить
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% elif item.type == 'round_trip' %}
+                    {% set booking = item.data %}
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-7">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <h6 class="mb-0 me-2">Туда-обратно: {{ booking.outbound_flight.origin_city }} →
+                                            {{ booking.outbound_flight.destination_city }}</h6>
+                                        <span class="badge bg-primary-custom">{{ CLASSES[booking.travel_class]['name'] }}</span>
+                                    </div>
+                                    <div class="small text-muted">
+                                        <i class="bi bi-calendar me-1"></i>
+                                        Туда: {{ booking.outbound_flight.departure_time.strftime('%d.%m.%Y %H:%M') }}
+                                    </div>
+                                    {% if booking.return_flight %}
+                                    <div class="small text-muted">
+                                        <i class="bi bi-calendar me-1"></i>
+                                        Обратно: {{ booking.return_flight.departure_time.strftime('%d.%m.%Y %H:%M') }}
+                                    </div>
+                                    <div class="small text-muted">
+                                        <i class="bi bi-airplane me-1"></i>
+                                        {{ booking.outbound_flight.airline }} → {{ booking.return_flight.airline }}
+                                    </div>
+                                    {% endif %}
+                                    <div class="small text-muted">
+                                        <i class="bi bi-person me-1"></i>
+                                        {{ booking.adults }} взр.
+                                        {% if booking.children > 0 %}+ {{ booking.children }} дет.{% endif %}
+                                        {% if booking.infants > 0 %}+ {{ booking.infants }} мл.{% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="price-tag small">
+                                        {{ "{:,}".format(booking.total_price).replace(',', ' ') }} ₽
+                                    </div>
+                                    <div class="small text-muted">Номер: {{ booking.booking_number }}</div>
+                                    <div class="small text-muted mt-1">
+                                                    <span class="badge {% if booking.status == 'confirmed' %}bg-success{% else %}bg-secondary{% endif %}">
+                                                        {{ 'Подтверждено' if booking.status == 'confirmed' else 'Отменено' }}
+                                                    </span>
+                                    </div>
+                                </div>
+                                <div class="col-md-2 text-md-end">
+                                    <a href="{{ url_for('flight_detail', flight_id=booking.outbound_flight.id) }}"
+                                       class="btn btn-sm btn-outline-primary mb-2">Подробнее</a>
+                                    {% if booking.status == 'confirmed' %}
+                                    <a href="{{ url_for('cancel_booking_confirm', booking_id=booking.id) }}"
+                                       class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-x-circle me-1"></i>Отменить
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if bookings|length > 5 %}
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('my_bookings') }}" class="btn btn-outline-primary">Показать все бронирования
+                            ({{ bookings|length }})</a>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-ticket-perforated text-muted" style="font-size: 4rem;"></i>
+                        <h5 class="mt-3">У вас пока нет бронирований</h5>
+                        <p class="text-muted">Найдите билеты и забронируйте их!</p>
+                        <a href="{{ url_for('search') }}" class="btn btn-primary">Найти билеты</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно загрузки аватара -->
+<div class="modal fade" id="avatarModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Сменить аватар</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('upload_avatar') }}" enctype="multipart/form-data">
+                <div class="modal-body">
+                    {{ avatar_form.hidden_tag() }}
+                    <div class="mb-3">
+                        <label class="form-label">Выберите изображение</label>
+                        {{ avatar_form.avatar(class="form-control") }}
+                        <small class="text-muted">Поддерживаются JPG, PNG, GIF (макс. 16MB)</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    {{ avatar_form.submit(class="btn btn-primary") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .badge-stops {
+        background-color: #e9ecef;
+        color: #495057;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: 500;
+        display: inline-block;
+    }
+
+    .badge-baggage {
+        background-color: #d1fae5;
+        color: #065f46;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: 500;
+        display: inline-block;
+    }
+
+    .price-tag {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #4361ee;
+    }
+
+    .flight-card {
+        transition: all 0.2s;
+    }
+
+    .flight-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .avatar-lg {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 4px solid white;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+</style>
+
+{% block extra_js %}
+<script>
+    // Активация вкладок при загрузке страницы
+    document.addEventListener('DOMContentLoaded', function() {
+        // Проверяем, есть ли сохраненная вкладка в sessionStorage
+        const activeTab = sessionStorage.getItem('activeProfileTab');
+        if (activeTab) {
+            const tabButton = document.querySelector(`button[data-bs-target="${activeTab}"]`);
+            if (tabButton) {
+                const tab = new bootstrap.Tab(tabButton);
+                tab.show();
+            }
+            sessionStorage.removeItem('activeProfileTab');
+        }
+
+        // Сохраняем активную вкладку при переключении
+        const tabButtons = document.querySelectorAll('#profileTabs button');
+        tabButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const target = this.getAttribute('data-bs-target');
+                sessionStorage.setItem('activeProfileTab', target);
+            });
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %}
