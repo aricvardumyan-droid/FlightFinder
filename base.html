@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlightFinder - {% block title %}Поиск авиабилетов{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background-color: #f8fafc; min-height: 100vh; display: flex; flex-direction: column; }
+        .navbar-brand { font-weight: 700; font-size: 1.5rem; color: #4361ee !important; }
+        .btn-primary { background-color: #4361ee; border-color: #4361ee; }
+        .btn-primary:hover { background-color: #3730a3; border-color: #3730a3; }
+        .text-primary-custom { color: #4361ee !important; }
+        .bg-primary-custom { background-color: #4361ee !important; }
+        .card { border-radius: 16px; border: none; box-shadow: 0 4px 20px rgba(0,0,0,0.08); transition: transform 0.2s, box-shadow 0.2s; }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(67, 97, 238, 0.12); }
+        .footer { margin-top: auto; background-color: white; border-top: 1px solid #e9ecef; padding: 2rem 0; }
+        .alert { border-radius: 12px; border: none; }
+        .avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+        .avatar-lg { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid white; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        .price-tag { font-size: 1.5rem; font-weight: 700; color: #4361ee; }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+<nav class="navbar navbar-expand-lg bg-white shadow-sm">
+    <div class="container">
+        <a class="navbar-brand" href="{{ url_for('index') }}"><i
+                class="bi bi-airplane-engines me-2"></i>FlightFinder</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"><span
+                class="navbar-toggler-icon"></span></button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Главная</a></li>
+                {% if current_user.is_authenticated %}
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('my_bookings') }}">Мои бронирования</a></li>
+                {% endif %}
+            </ul>
+            <ul class="navbar-nav">
+                {% if current_user.is_authenticated %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button"
+                       data-bs-toggle="dropdown">
+                        <img src="{{ url_for('uploaded_file', filename=current_user.avatar) if current_user.avatar != 'default_avatar.png' else url_for('static', filename='default_avatar.png') }}"
+                             class="avatar me-2" alt="Avatar">
+                        {{ current_user.username }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="{{ url_for('profile') }}"><i class="bi bi-person me-2"></i>Профиль</a>
+                        </li>
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i
+                                class="bi bi-box-arrow-right me-2"></i>Выйти</a></li>
+                    </ul>
+                </li>
+                {% else %}
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('login') }}">Вход</a></li>
+                <li class="nav-item"><a class="btn btn-primary ms-2" href="{{ url_for('register') }}">Регистрация</a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-3">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show"
+         role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+</div>
+
+<main class="flex-grow-1">{% block content %}{% endblock %}</main>
+
+<footer class="footer">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-4"><h5 class="mb-3">FlightFinder</h5>
+                <p class="text-muted">Находите лучшие предложения на авиабилеты по всей России.</p></div>
+            <div class="col-md-4"><h5 class="mb-3">Навигация</h5>
+                <ul class="list-unstyled">
+                    <li><a href="{{ url_for('index') }}" class="text-decoration-none text-muted">Главная</a></li>
+                    {% if current_user.is_authenticated %}
+                    <li><a href="{{ url_for('profile') }}" class="text-decoration-none text-muted">Личный кабинет</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+            <div class="col-md-4"><h5 class="mb-3">Контакты</h5>
+                <p class="text-muted"><i class="bi bi-envelope me-2"></i>support@flightfinder.ru<br><i
+                        class="bi bi-telephone me-2"></i>8 (800) 123-45-67</p></div>
+        </div>
+        <hr class="my-4">
+        <p class="text-center text-muted mb-0">© 2026 FlightFinder. Все права защищены. Проект Яндекс.Лицея.</p>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet"/>
+<script>
+    $(document).ready(function() {
+        $('.airport-select').select2({ ajax: { url: '/api/airports', dataType: 'json', delay: 250, data: function(params) { return { q: params.term }; }, processResults: function(data) { return { results: data.results }; } }, minimumInputLength: 2, placeholder: 'Введите город', allowClear: true });
+        $('.destination-select').select2({ ajax: { url: '/api/destinations', dataType: 'json', delay: 250, data: function(params) { return { origin: $('#origin').val(), q: params.term }; }, processResults: function(data) { return { results: data.results }; } }, minimumInputLength: 2, placeholder: 'Введите город назначения', allowClear: true });
+    });
+
+    // Инициализация всех tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+    });
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

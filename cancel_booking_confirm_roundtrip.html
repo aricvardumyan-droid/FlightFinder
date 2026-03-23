@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Подтверждение отмены бронирования{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h4 class="mb-0 text-center">Подтверждение отмены бронирования</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        Внимание! Отмена бронирования окончательна и не может быть отменена.
+                    </div>
+
+                    <div class="mb-4">
+                        <h6>Информация о бронировании:</h6>
+                        <p class="mb-1"><strong>Номер:</strong> {{ booking.booking_number }}</p>
+                        <p class="mb-1"><strong>Маршрут туда:</strong> {{ booking.outbound_flight.origin_city }} → {{
+                            booking.outbound_flight.destination_city }}</p>
+                        <p class="mb-1"><strong>Дата вылета туда:</strong> {{
+                            booking.outbound_flight.departure_time.strftime('%d.%m.%Y %H:%M') }}</p>
+                        {% if booking.return_flight %}
+                        <p class="mb-1"><strong>Маршрут обратно:</strong> {{ booking.return_flight.origin_city }} → {{
+                            booking.return_flight.destination_city }}</p>
+                        <p class="mb-1"><strong>Дата вылета обратно:</strong> {{
+                            booking.return_flight.departure_time.strftime('%d.%m.%Y %H:%M') }}</p>
+                        {% endif %}
+                        <p class="mb-1"><strong>Сумма:</strong> {{ "{:,}".format(booking.total_price).replace(',', ' ')
+                            }} ₽</p>
+                    </div>
+
+                    <hr>
+
+                    <form method="POST" action="{{ url_for('cancel_booking_with_captcha', booking_id=booking.id) }}">
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Для подтверждения отмены решите пример:</label>
+                            <div class="bg-light p-3 rounded text-center">
+                                <span class="fs-1 fw-bold">2 + 2 = ?</span>
+                            </div>
+                            <input type="text" name="captcha_answer" class="form-control mt-3"
+                                   placeholder="Введите ответ" required autocomplete="off">
+                        </div>
+
+                        <div class="d-flex gap-3">
+                            <a href="{{ url_for('my_round_trip_bookings') }}" class="btn btn-secondary flex-grow-1">
+                                <i class="bi bi-arrow-left me-2"></i>Вернуться
+                            </a>
+                            <button type="submit" class="btn btn-danger flex-grow-1">
+                                <i class="bi bi-check-circle me-2"></i>Подтвердить отмену
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-light {
+        background-color: #f8f9fa !important;
+    }
+    .fs-1 {
+        font-size: 2.5rem !important;
+    }
+</style>
+{% endblock %}

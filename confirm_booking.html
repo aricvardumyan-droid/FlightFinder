@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+
+{% block title %}Подтверждение бронирования{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-white py-3">
+                    <h4 class="mb-0 text-center">Подтверждение бронирования</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Рейс туда -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Рейс туда</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="badge bg-primary-custom">{{ outbound_flight.airline }}</span>
+                                <span class="text-muted">Рейс {{ outbound_flight.flight_number }}</span>
+                            </div>
+                            <div class="row text-center">
+                                <div class="col-5">
+                                    <div class="fw-bold fs-5">{{ outbound_flight.departure_time.strftime('%H:%M') }}
+                                    </div>
+                                    <div>{{ outbound_flight.origin_code }}</div>
+                                    <div class="small text-muted">{{ outbound_flight.origin_city }}</div>
+                                </div>
+                                <div class="col-2">
+                                    <div class="small text-muted">
+                                        {% if outbound_flight.stops > 0 %}
+                                        <span class="fw-bold text-primary">{{ outbound_flight.total_duration_str }}</span>
+                                        <br>
+                                        <small>(в воздухе: {{ outbound_flight.duration_str }})</small>
+                                        {% else %}
+                                        {{ outbound_flight.duration_str }}
+                                        {% endif %}
+                                    </div>
+                                    <div><i class="bi bi-arrow-right"></i></div>
+                                </div>
+                                <div class="col-5">
+                                    <div class="fw-bold fs-5">{{ outbound_flight.arrival_time.strftime('%H:%M') }}</div>
+                                    <div>{{ outbound_flight.destination_code }}</div>
+                                    <div class="small text-muted">{{ outbound_flight.destination_city }}</div>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="d-flex justify-content-between">
+                                <span>Цена:</span>
+                                <span class="fw-bold">{{ "{:,}".format(outbound_prices.total).replace(',', ' ') }} ₽</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Взрослые ({{ adults }}):</span>
+                                <span>{{ "{:,}".format(outbound_prices.adults_price).replace(',', ' ') }} ₽ × {{ adults }}</span>
+                            </div>
+                            {% if children > 0 %}
+                            <div class="d-flex justify-content-between">
+                                <span>Дети ({{ children }}):</span>
+                                <span>{{ "{:,}".format(outbound_prices.children_price).replace(',', ' ') }} ₽ × {{ children }}</span>
+                            </div>
+                            {% endif %}
+                            {% if baggage_addon and not outbound_flight.baggage %}
+                            <div class="d-flex justify-content-between text-success">
+                                <span><i class="bi bi-bag-check"></i> Багаж:</span>
+                                <span>+{{ BAGGAGE_PRICE }} ₽</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if return_flight %}
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Рейс обратно</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="badge bg-primary-custom">{{ return_flight.airline }}</span>
+                                <span class="text-muted">Рейс {{ return_flight.flight_number }}</span>
+                            </div>
+                            <div class="row text-center">
+                                <div class="col-5">
+                                    <div class="fw-bold fs-5">{{ return_flight.departure_time.strftime('%H:%M') }}</div>
+                                    <div>{{ return_flight.origin_code }}</div>
+                                    <div class="small text-muted">{{ return_flight.origin_city }}</div>
+                                </div>
+                                <div class="col-2">
+                                    <div class="small text-muted">
+                                        {% if return_flight.stops > 0 %}
+                                        <span class="fw-bold text-primary">{{ return_flight.total_duration_str }}</span>
+                                        <br>
+                                        <small>(в воздухе: {{ return_flight.duration_str }})</small>
+                                        {% else %}
+                                        {{ return_flight.duration_str }}
+                                        {% endif %}
+                                    </div>
+                                    <div><i class="bi bi-arrow-right"></i></div>
+                                </div>
+                                <div class="col-5">
+                                    <div class="fw-bold fs-5">{{ return_flight.arrival_time.strftime('%H:%M') }}</div>
+                                    <div>{{ return_flight.destination_code }}</div>
+                                    <div class="small text-muted">{{ return_flight.destination_city }}</div>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="d-flex justify-content-between">
+                                <span>Цена:</span>
+                                <span class="fw-bold">{{ "{:,}".format(return_prices.total).replace(',', ' ') }} ₽</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Взрослые ({{ adults }}):</span>
+                                <span>{{ "{:,}".format(return_prices.adults_price).replace(',', ' ') }} ₽ × {{ adults }}</span>
+                            </div>
+                            {% if children > 0 %}
+                            <div class="d-flex justify-content-between">
+                                <span>Дети ({{ children }}):</span>
+                                <span>{{ "{:,}".format(return_prices.children_price).replace(',', ' ') }} ₽ × {{ children }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Информация о пассажирах</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="text-center">
+                                        <div class="fs-4">{{ adults }}</div>
+                                        <div class="small text-muted">Взрослые</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="text-center">
+                                        <div class="fs-4">{{ children }}</div>
+                                        <div class="small text-muted">Дети (2-11 лет)</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="text-center">
+                                        <div class="fs-4">{{ infants }}</div>
+                                        <div class="small text-muted">Младенцы (до 2 лет)</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="text-center">
+                                <span class="badge bg-light text-dark">Класс: {{ CLASSES[travel_class]['name'] }}</span>
+                                {% if baggage_addon and not outbound_flight.baggage %}
+                                <span class="badge bg-success ms-2">+ Багаж</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h4 class="mb-0">Итого к оплате:</h4>
+                                <div class="price-tag display-6">{{ "{:,}".format(total_price).replace(',', ' ') }} ₽
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('complete_booking') }}" class="mt-4">
+                        <input type="hidden" name="outbound_id" value="{{ outbound_flight.id }}">
+                        {% if return_flight %}
+                        <input type="hidden" name="return_id" value="{{ return_flight.id }}">
+                        {% endif %}
+                        <input type="hidden" name="adults" value="{{ adults }}">
+                        <input type="hidden" name="children" value="{{ children }}">
+                        <input type="hidden" name="infants" value="{{ infants }}">
+                        <input type="hidden" name="travel_class" value="{{ travel_class }}">
+                        <input type="hidden" name="baggage_addon" value="{{ 'true' if baggage_addon else 'false' }}">
+
+                        <div class="d-flex gap-3">
+                            <a href="{{ url_for('search') }}" class="btn btn-outline-secondary flex-grow-1">
+                                <i class="bi bi-arrow-left me-2"></i>Вернуться к поиску
+                            </a>
+                            <button type="submit" class="btn btn-primary flex-grow-1">
+                                <i class="bi bi-check-circle me-2"></i>Подтвердить бронирование
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="alert alert-info mt-4">
+                        <i class="bi bi-info-circle me-2"></i>
+                        После подтверждения бронирования вы получите номер брони на email.
+                        Отмена бронирования возможна за 24 часа до вылета.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .price-tag {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #4361ee;
+    }
+    .display-6 {
+        font-size: 1.5rem;
+    }
+</style>
+{% endblock %}
