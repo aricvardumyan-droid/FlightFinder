@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Выбор обратного билета{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="card mb-4">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">Выбранный билет туда</h5>
+        </div>
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <span class="badge bg-primary-custom me-2">{{ outbound_flight.airline }}</span>
+                    <span class="text-muted">{{ outbound_flight.flight_number }}</span>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <span class="price-tag">{{ "{:,}".format(outbound_flight.price if outbound_flight.price is defined else outbound_flight.base_price).replace(',', ' ') }} ₽</span>
+                </div>
+            </div>
+            <hr>
+            <div class="row text-center">
+                <div class="col-5">
+                    <div class="fw-bold">{{ outbound_flight.departure_time.strftime('%H:%M') }}</div>
+                    <div>{{ outbound_flight.origin_code }}</div>
+                    <div class="small text-muted">{{ outbound_flight.origin_city }}</div>
+                </div>
+                <div class="col-2">
+                    <div class="small text-muted">{{ outbound_flight.duration_str }}</div>
+                    <div><i class="bi bi-arrow-right"></i></div>
+                </div>
+                <div class="col-5">
+                    <div class="fw-bold">{{ outbound_flight.arrival_time.strftime('%H:%M') }}</div>
+                    <div>{{ outbound_flight.destination_code }}</div>
+                    <div class="small text-muted">{{ outbound_flight.destination_city }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h4 class="mb-4">Выберите обратный билет на {{ return_date }}</h4>
+
+    {% if return_flights %}
+    {% for flight in return_flights %}
+    <div class="card mb-3 flight-card">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="badge bg-primary-custom me-2">{{ flight.airline }}</span>
+                        <span class="text-muted small">{{ flight.flight_number }}</span>
+                    </div>
+                    <div class="row align-items-center">
+                        <div class="col-5 text-center">
+                            <div class="fw-bold fs-5">{{ flight.departure_time.strftime('%H:%M') }}</div>
+                            <div>{{ flight.origin_code }}</div>
+                            <div class="small text-muted">{{ flight.origin_city }}</div>
+                        </div>
+                        <div class="col-2 text-center">
+                            <div class="small text-muted">{{ flight.duration_str }}</div>
+                            <div class="border-top border-bottom py-1"><i class="bi bi-arrow-right"></i></div>
+                            <div class="small text-muted">{{ flight.stops_str }}</div>
+                        </div>
+                        <div class="col-5 text-center">
+                            <div class="fw-bold fs-5">{{ flight.arrival_time.strftime('%H:%M') }}</div>
+                            <div>{{ flight.destination_code }}</div>
+                            <div class="small text-muted">{{ flight.destination_city }}</div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        {% if flight.baggage %}
+                        <span class="badge-baggage"><i class="bi bi-bag-check"></i> Багаж включен</span>
+                        {% else %}
+                        <span class="badge bg-secondary bg-opacity-10 text-secondary">Без багажа</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                    <div class="price-tag mb-2">{{ "{:,}".format(flight.price).replace(',', ' ') }} ₽</div>
+                    <a href="{{ url_for('bookings.confirm_booking', outbound_id=outbound_id, return_id=flight.id, adults=adults, children=children, infants=infants, travel_class=travel_class, baggage_addon='true' if baggage_addon else 'false') }}"
+                       class="btn btn-primary">Выбрать этот билет</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="text-center py-5">
+        <i class="bi bi-exclamation-circle text-muted" style="font-size: 4rem;"></i>
+        <h5 class="mt-3">Рейсов обратно не найдено</h5>
+        <p class="text-muted">Попробуйте изменить дату</p>
+        <a href="{{ url_for('search') }}" class="btn btn-primary">Новый поиск</a>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .badge-baggage { background-color: #d1fae5; color: #065f46; padding: 0.5rem 1rem; border-radius: 20px; font-weight: 500; display: inline-block; }
+    .flight-card { transition: all 0.2s; cursor: pointer; }
+    .flight-card:hover { background-color: #f8fafc; transform: translateY(-2px); }
+</style>
+{% endblock %}

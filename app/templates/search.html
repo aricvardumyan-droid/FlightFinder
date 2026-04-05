@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block title %}Поиск билетов{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card p-4">
+                <h2 class="text-center mb-4">Поиск авиабилетов по России</h2>
+
+                <form method="POST" action="{{ url_for('main.search') }}" novalidate>
+                    {{ form.hidden_tag() }}
+
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Откуда</label>
+                            {{ form.origin(class="form-control form-control-lg airport-select", placeholder="Москва,
+                            Санкт-Петербург...") }}
+                            {% for error in form.origin.errors %}
+                            <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Куда</label>
+                            {{ form.destination(class="form-control form-control-lg destination-select",
+                            placeholder="Сочи, Казань...") }}
+                            {% for error in form.destination.errors %}
+                            <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-medium">Туда</label>
+                            {{ form.departure_date(class="form-control form-control-lg", type="date",
+                            id="departure_date") }}
+                            {% for error in form.departure_date.errors %}
+                            <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-medium">Обратно</label>
+                            {{ form.return_date(class="form-control form-control-lg", type="date", id="return_date") }}
+                            {% for error in form.return_date.errors %}
+                            <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-medium">Класс обслуживания</label>
+                            {{ form.travel_class(class="form-control form-control-lg") }}
+                        </div>
+
+                        <div class="col-12">
+                            <div class="form-check mb-3">
+                                {{ form.baggage_addon(class="form-check-input", id="baggage_addon") }}
+                                <label class="form-check-label" for="baggage_addon">
+                                    Добавить багаж (+5200 ₽)
+                                </label>
+                                <small class="text-muted d-block">Багаж 23 кг на каждого пассажира</small>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="card bg-light p-3">
+                                <h6 class="mb-3">Количество пассажиров</h6>
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Взрослые (12+)</label>
+                                        {{ form.adults(class="form-control", min="1", max="9", id="adults") }}
+                                        <small class="text-muted">Полный билет</small>
+                                        {% for error in form.adults.errors %}
+                                        <div class="text-danger small">{{ error }}</div>
+                                        {% endfor %}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Дети (2-11)</label>
+                                        {{ form.children(class="form-control", min="0", max="9", id="children") }}
+                                        <small class="text-muted">Скидка 50%</small>
+                                        {% for error in form.children.errors %}
+                                        <div class="text-danger small">{{ error }}</div>
+                                        {% endfor %}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Младенцы (до 2 лет)</label>
+                                        {{ form.infants(class="form-control", min="0", max="9", id="infants") }}
+                                        <small class="text-muted">Бесплатно, без места</small>
+                                        {% for error in form.infants.errors %}
+                                        <div class="text-danger small">{{ error }}</div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        * Младенцы (до 2 лет) летят бесплатно, без отдельного места
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary btn-lg w-100 py-3">
+                                <i class="bi bi-search me-2"></i>Найти билеты
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <hr class="my-4">
+
+                <div class="text-center">
+                    <h6 class="mb-3">Популярные направления по России:</h6>
+                    <div class="d-flex flex-wrap gap-2 justify-content-center">
+                        <a href="{{ url_for('main.results') }}?origin=Москва&destination=Санкт-Петербург&departure={{ (now + timedelta(days=7)).strftime('%Y-%m-%d') }}&return_date={{ (now + timedelta(days=14)).strftime('%Y-%m-%d') }}&adults=1&children=0&infants=0&travel_class=economy&baggage_addon=false"
+                           class="btn btn-outline-primary btn-sm">Москва → Санкт-Петербург</a>
+                        <a href="{{ url_for('main.results') }}?origin=Москва&destination=Сочи&departure={{ (now + timedelta(days=7)).strftime('%Y-%m-%d') }}&return_date={{ (now + timedelta(days=14)).strftime('%Y-%m-%d') }}&adults=1&children=0&infants=0&travel_class=economy&baggage_addon=false"
+                           class="btn btn-outline-primary btn-sm">Москва → Сочи</a>
+                        <a href="{{ url_for('main.results') }}?origin=Санкт-Петербург&destination=Москва&departure={{ (now + timedelta(days=7)).strftime('%Y-%m-%d') }}&return_date={{ (now + timedelta(days=14)).strftime('%Y-%m-%d') }}&adults=1&children=0&infants=0&travel_class=economy&baggage_addon=false"
+                           class="btn btn-outline-primary btn-sm">Санкт-Петербург → Москва</a>
+                        <a href="{{ url_for('main.results') }}?origin=Москва&destination=Казань&departure={{ (now + timedelta(days=7)).strftime('%Y-%m-%d') }}&return_date={{ (now + timedelta(days=14)).strftime('%Y-%m-%d') }}&adults=1&children=0&infants=0&travel_class=economy&baggage_addon=false"
+                           class="btn btn-outline-primary btn-sm">Москва → Казань</a>
+                        <a href="{{ url_for('main.results') }}?origin=Москва&destination=Екатеринбург&departure={{ (now + timedelta(days=7)).strftime('%Y-%m-%d') }}&return_date={{ (now + timedelta(days=14)).strftime('%Y-%m-%d') }}&adults=1&children=0&infants=0&travel_class=economy&baggage_addon=false"
+                           class="btn btn-outline-primary btn-sm">Москва → Екатеринбург</a>
+                        <a href="{{ url_for('main.results') }}?origin=Москва&destination=Новосибирск&departure={{ (now + timedelta(days=7)).strftime('%Y-%m-%d') }}&return_date={{ (now + timedelta(days=14)).strftime('%Y-%m-%d') }}&adults=1&children=0&infants=0&travel_class=economy&baggage_addon=false"
+                           class="btn btn-outline-primary btn-sm">Москва → Новосибирск</a>
+                        <a href="{{ url_for('main.results') }}?origin=Москва&destination=Краснодар&departure={{ (now + timedelta(days=7)).strftime('%Y-%m-%d') }}&return_date={{ (now + timedelta(days=14)).strftime('%Y-%m-%d') }}&adults=1&children=0&infants=0&travel_class=economy&baggage_addon=false"
+                           class="btn btn-outline-primary btn-sm">Москва → Краснодар</a>
+                        <a href="{{ url_for('main.results') }}?origin=Москва&destination=Владивосток&departure={{ (now + timedelta(days=14)).strftime('%Y-%m-%d') }}&return_date={{ (now + timedelta(days=21)).strftime('%Y-%m-%d') }}&adults=1&children=0&infants=0&travel_class=economy&baggage_addon=false"
+                           class="btn btn-outline-primary btn-sm">Москва → Владивосток</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
+
+        const departureInput = document.getElementById('departure_date');
+        const returnInput = document.getElementById('return_date');
+
+        if (departureInput) {
+            departureInput.min = todayStr;
+            if (!departureInput.value || departureInput.value < todayStr) {
+                departureInput.value = todayStr;
+            }
+        }
+
+        function updateReturnMinDate() {
+            if (departureInput && returnInput) {
+                const departureDate = departureInput.value;
+                if (departureDate) {
+                    returnInput.min = departureDate;
+                    if (!returnInput.value || returnInput.value < departureDate) {
+                        const returnDate = new Date(departureDate);
+                        returnDate.setDate(returnDate.getDate() + 7);
+                        returnInput.value = returnDate.toISOString().split('T')[0];
+                    }
+                }
+            }
+        }
+
+        if (departureInput) {
+            departureInput.addEventListener('change', updateReturnMinDate);
+        }
+
+        updateReturnMinDate();
+
+        const adultsInput = document.getElementById('adults');
+        const childrenInput = document.getElementById('children');
+        const infantsInput = document.getElementById('infants');
+
+        function validatePassengers() {
+            const adults = parseInt(adultsInput.value) || 0;
+            const children = parseInt(childrenInput.value) || 0;
+            const infants = parseInt(infantsInput.value) || 0;
+
+            if (adults === 0 && children === 0 && infants === 0) {
+                adultsInput.setCustomValidity('Должен быть хотя бы один пассажир');
+                adultsInput.classList.add('is-invalid');
+            } else {
+                adultsInput.setCustomValidity('');
+                adultsInput.classList.remove('is-invalid');
+            }
+
+            if (infants > adults) {
+                infantsInput.setCustomValidity('Количество младенцев не может превышать количество взрослых');
+                infantsInput.classList.add('is-invalid');
+            } else {
+                infantsInput.setCustomValidity('');
+                infantsInput.classList.remove('is-invalid');
+            }
+        }
+
+        if (adultsInput) {
+            adultsInput.addEventListener('input', validatePassengers);
+            childrenInput.addEventListener('input', validatePassengers);
+            infantsInput.addEventListener('input', validatePassengers);
+            validatePassengers();
+        }
+    });
+</script>
+{% endblock %}
