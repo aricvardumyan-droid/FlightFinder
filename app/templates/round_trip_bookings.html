@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Мои бронирования{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h2 class="mb-4">Мои бронирования</h2>
+
+    {% if bookings %}
+    <div class="row">
+        {% for booking in bookings %}
+        <div class="col-12 mb-4">
+            <div class="card {% if booking.status == 'cancelled' %}opacity-50{% endif %}">
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Бронирование #{{ booking.booking_number }}</h5>
+                        <span class="badge {% if booking.status == 'confirmed' %}bg-success{% else %}bg-secondary{% endif %}">
+                                {{ 'Подтверждено' if booking.status == 'confirmed' else 'Отменено' }}
+                            </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Рейс туда -->
+                    <div class="mb-3">
+                        <h6 class="text-primary mb-2">Рейс туда</h6>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="badge bg-primary-custom me-2">{{ booking.outbound_flight.airline }}</span>
+                                <span class="text-muted">{{ booking.outbound_flight.flight_number }}</span>
+                            </div>
+                            <div class="price-tag small">{{ "{:,}".format(booking.outbound_price).replace(',', ' ') }}
+                                ₽
+                            </div>
+                        </div>
+                        <div class="row text-center mt-2">
+                            <div class="col-5">
+                                <div class="fw-bold">{{ booking.outbound_flight.departure_time.strftime('%H:%M') }}
+                                </div>
+                                <div>{{ booking.outbound_flight.origin_code }}</div>
+                                <div class="small text-muted">{{ booking.outbound_flight.origin_city }}</div>
+                            </div>
+                            <div class="col-2">
+                                <div class="small text-muted">{{ booking.outbound_flight.duration_str }}</div>
+                                <div><i class="bi bi-arrow-right"></i></div>
+                            </div>
+                            <div class="col-5">
+                                <div class="fw-bold">{{ booking.outbound_flight.arrival_time.strftime('%H:%M') }}</div>
+                                <div>{{ booking.outbound_flight.destination_code }}</div>
+                                <div class="small text-muted">{{ booking.outbound_flight.destination_city }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if booking.return_flight %}
+                    <div class="mb-3">
+                        <h6 class="text-primary mb-2">Рейс обратно</h6>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="badge bg-primary-custom me-2">{{ booking.return_flight.airline }}</span>
+                                <span class="text-muted">{{ booking.return_flight.flight_number }}</span>
+                            </div>
+                            <div class="price-tag small">{{ "{:,}".format(booking.return_price).replace(',', ' ') }} ₽
+                            </div>
+                        </div>
+                        <div class="row text-center mt-2">
+                            <div class="col-5">
+                                <div class="fw-bold">{{ booking.return_flight.departure_time.strftime('%H:%M') }}</div>
+                                <div>{{ booking.return_flight.origin_code }}</div>
+                                <div class="small text-muted">{{ booking.return_flight.origin_city }}</div>
+                            </div>
+                            <div class="col-2">
+                                <div class="small text-muted">{{ booking.return_flight.duration_str }}</div>
+                                <div><i class="bi bi-arrow-right"></i></div>
+                            </div>
+                            <div class="col-5">
+                                <div class="fw-bold">{{ booking.return_flight.arrival_time.strftime('%H:%M') }}</div>
+                                <div>{{ booking.return_flight.destination_code }}</div>
+                                <div class="small text-muted">{{ booking.return_flight.destination_city }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-1">
+                                <i class="bi bi-person me-2 text-primary"></i>
+                                Взрослые: {{ booking.adults }}
+                            </p>
+                            <p class="mb-1">
+                                <i class="bi bi-person me-2 text-primary"></i>
+                                Дети: {{ booking.children }}
+                            </p>
+                            <p class="mb-1">
+                                <i class="bi bi-baby me-2 text-primary"></i>
+                                Младенцы: {{ booking.infants }}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-1">
+                                <i class="bi bi-star me-2 text-primary"></i>
+                                Класс: {{ CLASSES[booking.travel_class]['name'] }}
+                            </p>
+                            {% if booking.baggage_addon %}
+                            <p class="mb-1 text-success">
+                                <i class="bi bi-bag-check me-2"></i>
+                                Багаж добавлен (+{{ BAGGAGE_PRICE }} ₽)
+                            </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted">Забронировано: {{ booking.booking_date.strftime('%d.%m.%Y %H:%M') }}</span>
+                        </div>
+                        <div>
+                            <h5 class="mb-0">Итого: {{ "{:,}".format(booking.total_price).replace(',', ' ') }} ₽</h5>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    {% if booking.status == 'confirmed' %}
+                    <a href="#" class="btn btn-outline-danger btn-sm"
+                       onclick="alert('Для отмены бронирования обратитесь в службу поддержки')">
+                        <i class="bi bi-x-circle me-1"></i>Отменить бронирование
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="bi bi-ticket-perforated text-muted" style="font-size: 4rem;"></i>
+        <h5 class="mt-3">У вас пока нет бронирований</h5>
+        <p class="text-muted">Найдите билеты и забронируйте их!</p>
+        <a href="{{ url_for('search') }}" class="btn btn-primary">Найти билеты</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
